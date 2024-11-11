@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 
@@ -10,6 +11,8 @@ import (
 )
 
 func User_data(c *gin.Context) {
+
+	ctx := context.Background()
 
 	if err := c.ShouldBindJSON(""); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
@@ -24,6 +27,14 @@ func User_data(c *gin.Context) {
 	db.SetMaxIdleConns(20)
 	db.SetMaxOpenConns(10)
 	db.SetConnMaxLifetime(10)
+
+	query := "INSERT INTO (rfid_tag) VALUES (?)"
+
+	_, err = db.QueryContext(ctx, query)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server errror"})
+	}
+
 }
 
 func Attendace_user(c *gin.Context) {
