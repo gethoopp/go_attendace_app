@@ -7,15 +7,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/gethoopp/hr_attendance_app/modules"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 func User_data(c *gin.Context) {
-
+	var log modules.Userdata
 	ctx := context.Background()
 
-	if err := c.ShouldBindJSON(""); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
+	if err := c.ShouldBindJSON(&log); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"Error": gin.H{"message": "Gagal mengirimkan "}})
 		return
 	}
 
@@ -28,11 +29,14 @@ func User_data(c *gin.Context) {
 	db.SetMaxOpenConns(10)
 	db.SetConnMaxLifetime(10)
 
-	query := "INSERT INTO (rfid_tag) VALUES (?)"
+	//insert rfid number from scan to database
+	query := "INSERT INTO users(rfid_tag) VALUES (?)"
 
-	_, err = db.QueryContext(ctx, query)
+	_, err = db.ExecContext(ctx, query, log.Rfid)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server errror"})
+	} else {
+		c.JSON(http.StatusOK, gin.H{"message": "Succes input data"})
 	}
 
 }
