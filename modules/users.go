@@ -8,3 +8,7 @@ type Userdata struct {
 	Divisi string `json:"divisi_user"`
 	Tokens string `json:"token_user"`
 }
+
+type DataImage struct {
+	ImageRef string `json:"image_path"`
+}
