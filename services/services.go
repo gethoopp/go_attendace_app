@@ -89,7 +89,7 @@ func User_data(c *gin.Context) {
 
 	db, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/hr_attendance_app")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server errror"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server "})
 		return
 	}
 
@@ -99,12 +99,11 @@ func User_data(c *gin.Context) {
 	db.SetMaxOpenConns(10)
 	db.SetConnMaxLifetime(10)
 
-	//insert data from flutter input
-	query := "INSERT INTO users (name_user,email_user,divisi_user) VALUES(?,?,?)"
+	query := "INSERT INTO users (rfid_tag,name_user,email_user,divisi_user) VALUES(?,?,?,?)"
 
-	_, err = db.ExecContext(ctx, query, log.Name, log.Email, log.Divisi)
+	_, err = db.ExecContext(ctx, query, log.Rfid, log.Name, log.Email, log.Divisi)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server errror"})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Sudah terdaftar"})
 	} else {
 		c.JSON(http.StatusOK, gin.H{"message": "Succes input data"})
 	}
@@ -112,9 +111,26 @@ func User_data(c *gin.Context) {
 }
 
 // func Attendace_user(c *gin.Context) {
-
 // }
 
-// func CompareImageFromDb(c *gin.Context) {
+func CompareImageFromDb(c *gin.Context) {
+	ctx := context.Background()
+	db, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/hr_attendance_app")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server errror"})
+		return
+	}
 
-// }
+	defer db.Close()
+	query := "SELECT FROM * images_db where "
+	rows, err := db.QueryContext(ctx, query)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Internal Server errror", "Status": http.StatusBadRequest})
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+
+	}
+}

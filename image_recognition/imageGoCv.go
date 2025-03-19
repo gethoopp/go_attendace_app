@@ -61,33 +61,51 @@ func Save_image(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Gambar berhasil dikirim"})
 }
 
-func CompareImage(c *gin.Context, imageData []byte) {
+func CompareImage(c *gin.Context, imageData []byte, imageDB []byte) {
+
 	image, err := gocv.IMDecode(imageData, gocv.IMReadUnchanged)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Gagal mendecode gambarr"})
+		c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Gagal mendecode gambar"})
 		return
 	}
-
 	defer image.Close()
 
-	//proses matchmataking dengan gambar referensi di database
 	matVal := gocv.NewMat()
 	defer matVal.Close()
+	gocv.CvtColor(image, &matVal, gocv.ColorBGRToGray)
 
-	gocv.CvtColor(image, &matVal, gocv.ColorBGR555ToGRAY)
-
-	//proses matchmaking gambar
-	newRef := gocv.IMRead("refrensi.jpg", gocv.IMReadGrayScale)
-	if newRef.Empty() {
-		fmt.Println("Error reading reference image")
+	refImage, err := gocv.IMDecode(imageDB, gocv.IMReadGrayScale)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Error decoding reference image"})
 		return
 	}
-
-	defer newRef.Close()
+	if refImage.Empty() {
+		c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Error reading reference image"})
+		return
+	}
+	defer refImage.Close()
 
 	res := gocv.NewMat()
 	defer res.Close()
 
-	gocv.MatchTemplate(image, newRef, &res, gocv.TmCcoeffNormed, res)
+	// Perform template matching
+	gocv.MatchTemplate(matVal, refImage, &res, gocv.TmCcoeffNormed, refImage)
 
+	minVal, maxVal, minLoc, maxLoc := gocv.MinMaxLoc(res)
+	threshold := float32(0.8)
+	if maxVal >= threshold {
+		c.JSON(http.StatusOK, gin.H{
+			"status":     http.StatusOK,
+			"message":    "Image match found",
+			"location":   maxLoc,
+			"confidence": maxVal,
+		})
+	} else {
+		c.JSON(http.StatusOK, gin.H{
+			"status":     http.StatusOK,
+			"message":    "No significant match found",
+			"location":   minLoc,
+			"confidence": minVal,
+		})
+	}
 }
