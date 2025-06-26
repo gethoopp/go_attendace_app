@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	imageRecognition "github.com/gethoopp/hr_attendance_app/image_recognition"
 	"github.com/gethoopp/hr_attendance_app/services"
 	"github.com/gin-gonic/gin"
@@ -31,6 +33,40 @@ func main() {
 	// 	http.ListenAndServe("localhost:6060", nil)
 	// }()
 	r.Run(":8080")
+
+	// Test chatbot with spago
+	// fmt.Println("Chatbot activated")
+	// scanner := bufio.NewScanner(os.Stdin)
+
+	// for {
+	// 	fmt.Print("Kamu: ")
+	// 	scanner.Scan()
+	// 	userInput := scanner.Text()
+
+	// 	if strings.ToLower(userInput) == "keluar" {
+	// 		fmt.Println("Chatbot: Sampai jumpa! 👋")
+	// 		break
+	// 	}
+
+	// 	response := chatbotResponse(userInput)
+	// 	fmt.Println("Chatbot:", response)
+	// }
+
+}
+
+func chatbotResponse(inputText string) string {
+	switch {
+	case strings.Contains(inputText, "halo"):
+		return "Halo juga! Ada yang bisa saya bantu?"
+	case strings.Contains(inputText, "siapa kamu"):
+		return "Saya adalah chatbot buatan kamu sendiri 😄"
+	case strings.Contains(inputText, "terima kasih"):
+		return "Sama-sama! Senang bisa membantu 👍"
+	case strings.Contains(inputText, "cuaca"):
+		return "Maaf, saya belum bisa memberikan info cuaca saat ini."
+	default:
+		return "Maaf, saya belum mengerti maksudmu. Coba pertanyaan lain?"
+	}
 }
 
 //curl -X POST http://localhost:8080/api/register -d '{"rfid_id" : 12021,"id_first_name" : "Sidarrta", "id_last_name" : "andi", "id_departement" : "IT","email_user" : "andi@gmail.com", "password_user": "12322"}' -H "Content-Type: application/json"
