@@ -11,12 +11,12 @@ var secretKey = []byte("my_secret_key")
 
 func CreateToken() (string, error) {
 
-	var log modules.Userdata
+	var log modules.Users
 
 	expiredTime := time.Now().Add(10 * time.Minute)
 
 	claims := &modules.ClaimsData{
-		NamaUser: log.Name,
+		NamaUser: log.FirstName,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expiredTime),
 		},
