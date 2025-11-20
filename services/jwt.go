@@ -1,9 +1,11 @@
 package services
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/gethoopp/hr_attendance_app/modules"
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -30,5 +32,42 @@ func CreateToken() (string, error) {
 	}
 
 	return tokenString, nil
+
+}
+
+//validate token is expired or not
+
+func ValidateToken(token string, c *gin.Context) (*modules.ClaimsData, error) {
+	claims := &modules.ClaimsData{}
+
+	parsedToken, err := jwt.ParseWithClaims(
+		token,
+		claims,
+		func(token *jwt.Token) (interface{}, error) {
+			return secretKey, nil
+		},
+	)
+
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			gin.H{
+				"Status":  http.StatusBadRequest,
+				"message": "Token Is Expired",
+			},
+		)
+	}
+
+	if !parsedToken.Valid {
+		c.JSON(
+			http.StatusConflict,
+			gin.H{
+				"Status":  http.StatusConflict,
+				"message": "Token is not valid",
+			},
+		)
+	}
+
+	return claims, nil
 
 }

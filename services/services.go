@@ -133,48 +133,87 @@ func User_data(c *gin.Context) {
 func LoginData(c *gin.Context) {
 	var log modules.Users
 	ctx := context.Background()
+
+	// Tampilkan error detail agar mudah debug
 	if err := c.ShouldBindJSON(&log); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"Error": gin.H{"message": "Gagal mengirimkan "}})
-		return
-	}
-	db, err := GetDB()
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "user login"})
-	}
-
-	defer db.Close()
-
-	var email_user string
-	var password_user string
-
-	query := "SELECT email_user, password_user FROM user_data WHERE email_user = ?"
-
-	rows, err := db.QueryContext(ctx, query, log.Email)
-	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"Status": http.StatusBadGateway, "Message": "Gagal melakukan request"})
-	}
-
-	defer rows.Close()
-	err = rows.Scan(&email_user, &password_user)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			c.JSON(http.StatusUnauthorized, gin.H{"status": http.StatusUnauthorized, "message": "Email atau password salah"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Terjadi kesalahan internal"})
-		return
-	}
-
-	//compare hash password
-	err = bcrypt.CompareHashAndPassword([]byte(password_user), []byte(log.Password))
-	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{
-			"status":  http.StatusInternalServerError,
-			"message": "Masukkan informasi login dnegan benar",
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
 		})
 		return
 	}
 
+	db, err := GetDB()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  http.StatusInternalServerError,
+			"message": "Gagal menghubungkan ke database",
+			"error":   err.Error(),
+		})
+		return
+	}
+	defer db.Close()
+
+	var emailUser string
+	var passwordHash string
+
+	query := "SELECT email_user, password_user FROM Users WHERE email_user = ?"
+
+	rows, err := db.QueryContext(ctx, query, log.Email)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{
+			"status":  http.StatusBadGateway,
+			"message": "Gagal melakukan request",
+			"error":   err.Error(),
+		})
+		return
+	}
+	defer rows.Close()
+
+	// HARUS rows.Next() dulu
+	if !rows.Next() {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"status":  http.StatusUnauthorized,
+			"message": "Email atau password salah",
+		})
+		return
+	}
+
+	// Baru Scan
+	if err := rows.Scan(&emailUser, &passwordHash); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  http.StatusInternalServerError,
+			"message": "Gagal membaca data",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	// Cek password hash
+	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(log.Password)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"status":  http.StatusUnauthorized,
+			"message": "Password salah",
+		})
+		return
+	}
+
+	// Buat token
+	token, err := CreateToken()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  http.StatusInternalServerError,
+			"message": "Gagal membuat token",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	// Sukses
+	c.JSON(http.StatusOK, gin.H{
+		"status":  http.StatusOK,
+		"message": "Login berhasil",
+		"token":   token,
+	})
 }
 
 func Register_Data(c *gin.Context) {
@@ -182,7 +221,7 @@ func Register_Data(c *gin.Context) {
 	var log modules.Users
 
 	if err := c.ShouldBindJSON(&log); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"Error": gin.H{"message": "Gagal mengirimkan "}})
+		c.JSON(http.StatusBadRequest, gin.H{"Error": gin.H{"message": "Gagal mengirimkan "}, "status": err.Error()})
 		return
 	}
 
