@@ -4,9 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
+	"strings"
+	"time"
 
 	"net/http"
+	"net/url"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -18,7 +22,33 @@ import (
 )
 
 func GetDB() (*sql.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s",
+	// 1. PRIORITY: Heroku (JAWSDB)
+	if jaws := os.Getenv("JAWSDB_URL"); jaws != "" {
+		u, err := url.Parse(jaws)
+		if err != nil {
+			return nil, err
+		}
+
+		user := u.User.Username()
+		pass, _ := u.User.Password()
+		host := u.Host
+		dbname := strings.TrimPrefix(u.Path, "/")
+
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true", user, pass, host, dbname)
+		db, err := sql.Open("mysql", dsn)
+		if err != nil {
+			return nil, err
+		}
+
+		db.SetMaxIdleConns(5)
+		db.SetMaxOpenConns(5)
+		db.SetConnMaxLifetime(time.Minute * 3)
+
+		return db, nil
+	}
+
+	// 2. fallback ke env lokal
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?parseTime=true",
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASS"),
 		os.Getenv("DB_HOST"),
@@ -32,71 +62,46 @@ func GetDB() (*sql.DB, error) {
 
 	db.SetMaxIdleConns(20)
 	db.SetMaxOpenConns(10)
-	db.SetConnMaxLifetime(10)
+	db.SetConnMaxLifetime(time.Minute * 10)
 
 	return db, nil
 }
 
 func Input_rfid(c *gin.Context) {
 
-	ctx := context.Background()
-
-	var upgrader = websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { return true },
 	}
 
-	db, err := GetDB()
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server errror"})
-	}
-
-	defer db.Close()
-
-	conn, err := upgrader.Upgrade(
-		c.Writer,
-		c.Request,
-		nil,
-	)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ada Kesalahaan Internal"})
+		log.Println("Upgrade error:", err)
 		return
 	}
-
 	defer conn.Close()
 
 	for {
-		_, message, err := conn.ReadMessage()
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":  "WebSocket handshake failed",
-				"detail": err.Error(),
+		var msg modules.Users
+
+		if err := conn.ReadJSON(&msg.Rfid); err != nil {
+			log.Println("ReadJSON error:", err)
+			break
+		}
+
+		log.Println("RFID:", msg.Rfid)
+
+		// echo balik
+		if err := conn.WriteJSON(gin.H{
+			"rfid_tag": msg.Rfid,
+		}); err != nil {
+			log.Println("WriteJSON error:", err)
+			conn.WriteJSON(gin.H{
+				"error":  "Internal Server Error",
+				"Detail": err.Error(),
 			})
-			return
+			break
 		}
-
-		var value int
-		_, err = fmt.Sscanf(string(message), "%d", &value)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":  "WebSocket failed request",
-				"detail": err.Error(),
-			})
-			return
-		}
-
-		query := "INSERT INTO users(rfid_tag) VALUES(?)"
-
-		_, err = db.ExecContext(ctx, query, value)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server errror"})
-		} else {
-			c.JSON(http.StatusOK, gin.H{"message": "Succes input data"})
-		}
-
 	}
-
 }
 
 func User_data(c *gin.Context) {
