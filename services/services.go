@@ -104,39 +104,56 @@ func Input_rfid(c *gin.Context) {
 }
 
 func User_data(c *gin.Context) {
-	var log modules.Users
+	var user modules.Users
 	ctx := context.Background()
-	if err := c.ShouldBindJSON(&log); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"Error": gin.H{"message": "Gagal mengirimkan "}})
+
+	userID, exists := c.Get("id_user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"message": "Unauthorized",
+		})
 		return
 	}
 
 	db, err := GetDB()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server "})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error"})
 		return
 	}
-
 	defer db.Close()
 
-	query := "SELECT id_users, rfid_id ,id_first_name, id_last_name,  id_departement, email_user,password_user FROM Users WHERE id_users=?"
+	query := `
+		SELECT 
+			id_users, 
+			rfid_id, 
+			id_first_name, 
+			id_last_name, 
+			id_departement, 
+			email_user
+		FROM Users 
+		WHERE id_users = ?
+	`
 
-	rows, err := db.QueryContext(ctx, query, log.Rfid, log.FirstName, log.LastName, log.Department, log.Email)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Sudah terdaftar"})
-	}
+	row := db.QueryRowContext(ctx, query, userID)
 
-	if !rows.Next() {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"status":  http.StatusUnauthorized,
-			"message": "ID tidak ditemukan",
-		})
-		return
-	}
+	if err := row.Scan(
+		&user.Id,
+		&user.Rfid,
+		&user.FirstName,
+		&user.LastName,
+		&user.Department,
+		&user.Email,
+	); err != nil {
 
-	if err := rows.Scan(&log.Id, &log.Rfid, &log.FirstName, &log.LastName, &log.Department, &log.Email); err != nil {
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{
+				"status":  http.StatusNotFound,
+				"message": "User tidak ditemukan",
+			})
+			return
+		}
+
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  http.StatusInternalServerError,
 			"message": "Gagal membaca data",
 			"error":   err.Error(),
 		})
@@ -144,23 +161,19 @@ func User_data(c *gin.Context) {
 	}
 
 	userResp := modules.UserResponse{
-		Id:         log.Id,
-		Rfid:       log.Rfid,
-		FirstName:  log.FirstName,
-		LastName:   log.LastName,
-		Department: log.Department,
-		Email:      log.Email,
+		Id:         user.Id,
+		Rfid:       user.Rfid,
+		FirstName:  user.FirstName,
+		LastName:   user.LastName,
+		Department: user.Department,
+		Email:      user.Email,
 	}
-
-	// msg_publish := fmt.Sprintf("Selamat Datang %s", log.FirstName)
-	// push_notification.Publisher_mssg(c, msg_publish)
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":  http.StatusOK,
-		"message": "Login berhasil",
+		"message": "Berhasil mengambil data user",
 		"result":  userResp,
 	})
-
 }
 
 func LoginData(c *gin.Context) {
@@ -398,6 +411,60 @@ func Logout_User(c *gin.Context) {
 			"message": "berhasil logout",
 		},
 	)
+}
+
+func Check_in(c *gin.Context) {
+	var log modules.Attendance
+	ctx := context.Background()
+
+	if err := c.ShouldBindJSON(&log); err != nil {
+		c.JSON(
+			http.StatusBadGateway,
+			gin.H{
+				"status":  http.StatusBadGateway,
+				"message": "Gagal membaca data",
+			},
+		)
+		return
+	}
+
+	db, err := GetDB()
+	if err != nil {
+		c.JSON(
+			http.StatusForbidden,
+			gin.H{
+				"status":  http.StatusForbidden,
+				"message": "Gagal menghubungkan database",
+			},
+		)
+		return
+	}
+
+	defer db.Close()
+
+	query := "INSERT INTO attendances (user_id, check_in, attendance_date) VALUES (?, NOW(), CURDATE());"
+
+	_, err = db.ExecContext(
+		ctx, query, log.IdUser,
+	)
+	if err != nil {
+		c.JSON(
+			http.StatusFound,
+			gin.H{
+				"status":  http.StatusFound,
+				"message": "Data tidak ditemukan",
+			},
+		)
+	}
+
+	c.JSON(
+		http.StatusOK,
+		gin.H{
+			"status":  http.StatusOK,
+			"message": "Check in berhasil",
+		},
+	)
+
 }
 
 // func Attendace_user(c *gin.Context) {

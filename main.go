@@ -37,16 +37,18 @@ func main() {
 	chatUser := chat.ChatBotOllama
 	JWTMiddleware := middleware.JWTMiddleware()
 	sendNotif := push_notification.SendsNotification
+	checkIn := services.Check_in
 
 	// ===== ROUTES =====
 	r.GET("/ws/input", req)
-	r.POST("/api/data", JWTMiddleware, reqs)
+	r.GET("/api/data", JWTMiddleware, reqs)
 	r.POST("/api/register", register)
 	r.POST("/api/login", login)
 	r.POST("/api/logout", JWTMiddleware, logout)
 	r.POST("/api/saveToken", JWTMiddleware, saveToken)
 	r.POST("/api/sendNotif", sendNotif, initFirebase)
 	r.POST("/api/chat", JWTMiddleware, chatUser)
+	r.POST("/api/checkIn", JWTMiddleware, checkIn)
 
 	// ===== PORT HEROKU =====
 	port := os.Getenv("PORT")
