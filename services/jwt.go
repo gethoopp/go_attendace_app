@@ -2,6 +2,7 @@ package services
 
 import (
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gethoopp/hr_attendance_app/modules"
@@ -9,16 +10,14 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var secretKey = []byte("my_secret_key")
+var secretKey = []byte(os.Getenv("JWT_SECRET"))
 
-func CreateToken() (string, error) {
-
-	var log modules.Users
-
-	expiredTime := time.Now().Add(10 * time.Minute)
+func CreateToken(user modules.Users) (string, error) {
+	expiredTime := time.Now().Add(5 * time.Minute)
 
 	claims := &modules.ClaimsData{
-		NamaUser: log.FirstName,
+		UserID:   user.Id,
+		NamaUser: user.FirstName,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expiredTime),
 		},
@@ -32,7 +31,6 @@ func CreateToken() (string, error) {
 	}
 
 	return tokenString, nil
-
 }
 
 //validate token is expired or not

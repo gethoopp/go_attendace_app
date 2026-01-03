@@ -1,18 +1,22 @@
 package chat
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/gethoopp/hr_attendance_app/modules"
 	"github.com/gin-gonic/gin"
 )
 
 func ChatBotOllama(c *gin.Context) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+
+	defer cancel()
 	var req modules.RequestChat
 
 	if err := c.ShouldBindJSON(&req); err != nil || req.Prompt == "" {
@@ -22,32 +26,34 @@ func ChatBotOllama(c *gin.Context) {
 
 	//input post
 	body, _ := json.Marshal(map[string]interface{}{
-		"model":  "llama3.2",
+		"model":  "deepseek-r1:1.5b",
 		"prompt": req.Prompt,
+		"stream": false,
 	})
-	reqOllama, _ := http.NewRequestWithContext(ctx, "POST", "http://localhost:11434/api/generate", bytes.NewReader(body))
+	reqOllama, _ := http.NewRequestWithContext(ctx, os.Getenv("METHOD_CHAT"), os.Getenv("URL_CHAT"), bytes.NewReader(body))
 	reqOllama.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(reqOllama)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "gagal menghubungi model"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "gagal menghubungi model", "message": err.Error()})
 		return
 	}
 	defer resp.Body.Close()
 
-	scanner := bufio.NewScanner(resp.Body)
-	var reply string
-	for scanner.Scan() {
-		line := scanner.Bytes()
-		var part modules.RequestStreamChat
-		if err := json.Unmarshal(line, &part); err == nil {
-			reply += part.Response
-			if part.Done {
-				break
-			}
-		}
+	bodyResp, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
+
+	var result modules.RequestStreamChat
+	if err := json.Unmarshal(bodyResp, &result); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"reply": reply,
+		"reply": result.Response,
 	})
+
 }
