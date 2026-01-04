@@ -38,6 +38,7 @@ func main() {
 	JWTMiddleware := middleware.JWTMiddleware()
 	sendNotif := push_notification.SendsNotification
 	checkIn := services.Check_in
+	checkOut := services.Check_out
 
 	// ===== ROUTES =====
 	r.GET("/ws/input", req)
@@ -49,6 +50,7 @@ func main() {
 	r.POST("/api/sendNotif", sendNotif, initFirebase)
 	r.POST("/api/chat", JWTMiddleware, chatUser)
 	r.POST("/api/checkIn", JWTMiddleware, checkIn)
+	r.POST("/api/checkOut", JWTMiddleware, checkOut)
 
 	// ===== PORT HEROKU =====
 	port := os.Getenv("PORT")

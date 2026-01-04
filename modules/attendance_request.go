@@ -8,10 +8,10 @@ import (
 
 type Attendance struct {
 	Id         int               `json:"id_attendance"`
-	IdUser     int               `json:"id_users"`
+	IdUser     int               `json:"user_id"`
 	Check_in   time.Time         `json:"check_in"`
 	Check_out  time.Time         `json:"check_out"`
-	DateIn     datetime.DateTime `json:"attendance_at"`
+	DateIn     datetime.DateTime `json:"attendance_date"`
 	Status     string            `json:"status"`
 	Created_at datetime.DateTime `json:"created_at"`
 }
