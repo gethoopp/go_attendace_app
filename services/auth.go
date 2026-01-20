@@ -79,10 +79,6 @@ func LoginData(c *gin.Context) {
 	}
 	defer db.Close()
 
-	// var emailUser string
-	// var passwordHash string
-	// var idUser int
-
 	query := "SELECT id_users, rfid_id ,id_first_name, id_last_name,  id_departement, email_user,password_user FROM Users WHERE email_user=?"
 
 	rows, err := db.QueryContext(ctx, query, reqLogin.Email)
@@ -189,18 +185,19 @@ func Register_Data(c *gin.Context) {
 
 	if err == nil {
 
-		if user.Email == res.Email {
+		switch {
+		case user.Email == res.Email:
 			c.JSON(http.StatusConflict, gin.H{
 				"message": "Email sudah terdaftar",
 			})
 			return
-		}
-		if user.Rfid == res.Rfid {
+		case user.Rfid == res.Rfid:
 			c.JSON(http.StatusConflict, gin.H{
 				"message": "RFID sudah terdaftar",
 			})
 			return
 		}
+
 	}
 
 	if err != sql.ErrNoRows {

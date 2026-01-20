@@ -43,7 +43,7 @@ func Input_rfid(c *gin.Context) {
 		if err := conn.WriteJSON(gin.H{
 			"rfid_tag": msg.Rfid,
 		}); err != nil {
-			log.Println("WriteJSON error:", err)
+
 			conn.WriteJSON(gin.H{
 				"error":  "Internal Server Error",
 				"Detail": err.Error(),
@@ -82,6 +82,7 @@ func User_data(c *gin.Context) {
 			email_user
 		FROM Users 
 		WHERE id_users = ?
+		AND attendance_date = ?
 	`
 
 	row := db.QueryRowContext(ctx, query, userID)

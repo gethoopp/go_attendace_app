@@ -1,11 +1,11 @@
 package imageRecognition
 
 import (
-	"database/sql"
 	"fmt"
 	"io"
 	"net/http"
 
+	"github.com/gethoopp/hr_attendance_app/database"
 	"github.com/gin-gonic/gin"
 	"gocv.io/x/gocv"
 )
@@ -44,7 +44,7 @@ func Save_image(c *gin.Context) {
 	}
 
 	// Connect to MySQL
-	db, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/hr_attendance_app")
+	db, err := database.GetDB()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error"})
 		return

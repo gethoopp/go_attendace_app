@@ -13,7 +13,7 @@ import (
 
 func main() {
 	// Pakai release mode (lebih hemat RAM)
-	initFirebase := middleware.InitFirebase
+
 	godotenv.Load()
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
@@ -30,6 +30,8 @@ func main() {
 	// ===== SERVICE =====
 	req := services.Input_rfid
 	reqs := services.User_data
+	presence := services.Get_presence
+	getPresenceBydate := services.Get_presence_byDate
 	register := services.Register_Data
 	login := services.LoginData
 	logout := services.Logout_User
@@ -39,18 +41,21 @@ func main() {
 	sendNotif := push_notification.SendsNotification
 	checkIn := services.Check_in
 	checkOut := services.Check_out
+	initFirebase := middleware.InitFirebase
 
 	// ===== ROUTES =====
 	r.GET("/ws/input", req)
 	r.GET("/api/data", JWTMiddleware, reqs)
+	r.GET("/api/presence", JWTMiddleware, presence)
+	r.POST("/api/getByDate", JWTMiddleware, getPresenceBydate)
 	r.POST("/api/register", register)
 	r.POST("/api/login", login)
 	r.POST("/api/logout", JWTMiddleware, logout)
 	r.POST("/api/saveToken", JWTMiddleware, saveToken)
-	r.POST("/api/sendNotif", sendNotif, initFirebase)
+	r.POST("/api/sendNotif", initFirebase, sendNotif)
 	r.POST("/api/chat", JWTMiddleware, chatUser)
 	r.POST("/api/checkIn", JWTMiddleware, checkIn)
-	r.POST("/api/checkOut", JWTMiddleware, checkOut)
+	r.PUT("/api/checkOut", JWTMiddleware, checkOut)
 
 	// ===== PORT HEROKU =====
 	port := os.Getenv("PORT")

@@ -14,6 +14,7 @@ type Users struct {
 	Email      string         `json:"email_user"`
 	Password   string         `json:"password_user"`
 	DeleteResp gorm.DeletedAt `gorm:"index"`
+	Role       string         `json:"role"`
 }
 
 type UserResponse struct {
@@ -24,6 +25,7 @@ type UserResponse struct {
 	Department string         `json:"id_departement"`
 	Email      string         `json:"email_user"`
 	DeleteResp gorm.DeletedAt `gorm:"index"`
+	Role       string         `json:"role"`
 }
 
 type DataImage struct {
