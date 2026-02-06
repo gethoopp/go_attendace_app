@@ -12,6 +12,7 @@ type Attendance struct {
 	DateIn     *time.Time `json:"attendance_date"`
 	Status     string     `json:"status"`
 	Created_at *time.Time `json:"created_at"`
+	Image_hash []byte     `json:"image_hash"`
 }
 
 type AttendanceRequest struct {

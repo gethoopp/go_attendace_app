@@ -29,7 +29,7 @@ type UserResponse struct {
 }
 
 type DataImage struct {
-	ImageRef string `json:"image_path"`
+	ImageRef []byte `json:"image_hash"`
 }
 
 type LoginRequest struct {
@@ -43,7 +43,10 @@ type ClaimsData struct {
 	jwt.RegisteredClaims
 }
 
-type DeviceTokenRequest struct {
-	DeviceToken string `json:"device_token"`
-	Platform    string `json:"platform"`
+type GetTotalWorker struct {
+	TotalWorker int `json:"total_day_working"`
+}
+
+type GetTotalWorkerResponse struct {
+	TotalWorker int `json:"total_day_working"`
 }

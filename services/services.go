@@ -82,7 +82,7 @@ func User_data(c *gin.Context) {
 			email_user
 		FROM Users 
 		WHERE id_users = ?
-		AND attendance_date = ?
+
 	`
 
 	row := db.QueryRowContext(ctx, query, userID)
@@ -153,7 +153,7 @@ func User_data(c *gin.Context) {
 // 		//
 
 // 		//melakukan compare image
-// 		// imageRecognition.CompareImage(c, []byte(log.ImageRef), []byte(log.ImageRef))
+// 		imageRecognition.CompareImage(c, []byte(log.ImageRef), []byte(log.ImageRef))
 
 // 	}
 

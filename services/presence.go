@@ -137,8 +137,10 @@ func Get_presence_byDate(c *gin.Context) {
 		return
 	}
 
+	dateOnly := t.Format("2006-01-02")
+
 	queries := "SELECT id_attendance, user_id, check_in, check_out, attendance_date, status, created_at FROM attendances WHERE user_id = ? AND attendance_date = ?"
-	rows, err := db.QueryContext(ctx, queries, req.IdUser, t)
+	rows, err := db.QueryContext(ctx, queries, req.IdUser, dateOnly)
 
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{
@@ -298,9 +300,11 @@ func Get_presence(c *gin.Context) {
 		return
 	}
 
+	dateOnly := t.Format("2006-01-02")
+
 	queries := "SELECT id_attendance, user_id, check_in, check_out, attendance_date, status, created_at FROM attendances WHERE user_id = ? AND attendance_date = ? "
 
-	rows := db.QueryRowContext(ctx, queries, userID, t)
+	rows := db.QueryRowContext(ctx, queries, userID, dateOnly)
 
 	if err := rows.Scan(
 		&log.Id,
@@ -314,7 +318,7 @@ func Get_presence(c *gin.Context) {
 		if err == sql.ErrNoRows {
 			c.JSON(http.StatusNotFound, gin.H{
 				"status":  http.StatusNotFound,
-				"message": "User tidak ditemukan",
+				"message": "data user tidak ditemukan",
 			})
 			return
 		}
@@ -345,5 +349,63 @@ func Get_presence(c *gin.Context) {
 			"result":  userResp,
 		},
 	)
+
+}
+
+func GetDataTotalWork(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, 5*time.Second)
+	var total modules.GetTotalWorker
+	defer cancel()
+
+	userID, exists := c.Get("id_user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"message": "Unauthorized",
+		})
+		return
+	}
+
+	db, err := database.GetDB()
+	if err != nil {
+		c.JSON(
+			http.StatusForbidden,
+			gin.H{
+				"status":  http.StatusForbidden,
+				"message": "Gagal menghubungkan database",
+			},
+		)
+		return
+	}
+
+	defer db.Close()
+
+	queries := "SELECT COUNT(*) AS total_day_working FROM attendances WHERE check_out IS NOT NULL AND user_id = ? "
+
+	rows := db.QueryRowContext(ctx, queries, userID)
+	if err := rows.Scan(&total.TotalWorker); err != nil {
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{
+				"status":  http.StatusNotFound,
+				"message": "data user tidak ditemukan",
+			})
+			return
+		}
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  0,
+			"message": "Gagal membaca data",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	GetTotalRespones := modules.GetTotalWorkerResponse{
+		TotalWorker: total.TotalWorker,
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":       1,
+		"total_worker": GetTotalRespones,
+	})
 
 }

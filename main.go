@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/gethoopp/hr_attendance_app/chat"
+	imageRecognition "github.com/gethoopp/hr_attendance_app/image_recognition"
 	"github.com/gethoopp/hr_attendance_app/middleware"
 	"github.com/gethoopp/hr_attendance_app/push_notification"
 	"github.com/gethoopp/hr_attendance_app/services"
@@ -31,6 +32,7 @@ func main() {
 	req := services.Input_rfid
 	reqs := services.User_data
 	presence := services.Get_presence
+	total_work := services.GetDataTotalWork
 	getPresenceBydate := services.Get_presence_byDate
 	register := services.Register_Data
 	login := services.LoginData
@@ -42,11 +44,13 @@ func main() {
 	checkIn := services.Check_in
 	checkOut := services.Check_out
 	initFirebase := middleware.InitFirebase
+	saveImage := imageRecognition.Save_image
 
 	// ===== ROUTES =====
-	r.GET("/ws/input", req)
+	r.GET("/ws/input", JWTMiddleware, req)
 	r.GET("/api/data", JWTMiddleware, reqs)
 	r.GET("/api/presence", JWTMiddleware, presence)
+	r.GET("/api/totalwork", JWTMiddleware, total_work)
 	r.POST("/api/getByDate", JWTMiddleware, getPresenceBydate)
 	r.POST("/api/register", register)
 	r.POST("/api/login", login)
@@ -55,6 +59,7 @@ func main() {
 	r.POST("/api/sendNotif", initFirebase, sendNotif)
 	r.POST("/api/chat", JWTMiddleware, chatUser)
 	r.POST("/api/checkIn", JWTMiddleware, checkIn)
+	r.POST("/api/save_image", JWTMiddleware, saveImage)
 	r.PUT("/api/checkOut", JWTMiddleware, checkOut)
 
 	// ===== PORT HEROKU =====
